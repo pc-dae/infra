@@ -1,7 +1,7 @@
 package mn.dae.pc;
 
-import mn.dae.pc.model.Book;
-import mn.dae.pc.repository.BookRepository;
+import mn.dae.pc.model.Infra;
+import mn.dae.pc.repository.InfraRepository;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -31,13 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Testcontainers
 // JPA drop and create table, good for testing
 @TestPropertySource(properties = {"spring.jpa.hibernate.ddl-auto=create-drop"})
-public class BookControllerTest {
+public class InfraControllerTest {
 
     @LocalServerPort
     private Integer port;
 
     @Autowired
-    BookRepository bookRepository;
+    InfraRepository infraRepository;
 
     // static, all tests share this postgres container
     @Container
@@ -49,22 +49,12 @@ public class BookControllerTest {
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost:" + port;
-        bookRepository.deleteAll();
+        infraRepository.deleteAll();
 
-        Book b1 = new Book("Book A",
-                BigDecimal.valueOf(9.99),
-                LocalDate.of(2023, 8, 31));
-        Book b2 = new Book("Book B",
-                BigDecimal.valueOf(19.99),
-                LocalDate.of(2023, 7, 31));
-        Book b3 = new Book("Book C",
-                BigDecimal.valueOf(29.99),
-                LocalDate.of(2023, 6, 10));
-        Book b4 = new Book("Book D",
-                BigDecimal.valueOf(39.99),
-                LocalDate.of(2023, 5, 5));
+        Infra i1 = new Infra("vm", "paul1");
+        Infra i2 = new Infra("vm", "paul2");
 
-        bookRepository.saveAll(List.of(b1, b2, b3, b4));
+        infraRepository.saveAll(List.of(i1, i2));
     }
 
     @Test
@@ -73,65 +63,37 @@ public class BookControllerTest {
         given()
                 .contentType(ContentType.JSON)
                 .when()
-                    .get("/books")
+                    .get("/infra")
                 .then()
                     .statusCode(200)    // expecting HTTP 200 OK
                     .contentType(ContentType.JSON) // expecting JSON response content
-                    .body(".", hasSize(4));
+                    .body(".", hasSize(2));
 
     }
 
     @Test
-    void testFindByTitle() {
+    void testFindByTypeAndName() {
 
-        String title = "Book C";
+        String name = "paul1";
+        String type = "vm";
 
         given()
                 //Returning floats and doubles as BigDecimal
                 .config(RestAssured.config().jsonConfig(jsonConfig().numberReturnType(BIG_DECIMAL)))
                 .contentType(ContentType.JSON)
-                .pathParam("title", title)
+                .pathParam("type", type)
+                .pathParam("name", name)
                 .when()
-                    .get("/books/find/title/{title}")
+                    .get("/infra/find/{type}/{name}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body(
                         ".", hasSize(1),
-                        "[0].title", equalTo("Book C"),
-                        "[0].price", is(new BigDecimal("29.99")),
-                        "[0].publishDate", equalTo("2023-06-10")
+                        "[0].type", equalTo("vm"),
+                        "[0].name", equalTo("paul1")
                 );
     }
-
-    @Test
-    void testFindByPublishedDateAfter() {
-
-        String date = "2023-07-01";
-
-        Response result = given()
-                //Returning floats and doubles as BigDecimal
-                .config(RestAssured.config().jsonConfig(jsonConfig().numberReturnType(BIG_DECIMAL)))
-                .contentType(ContentType.JSON)
-                .pathParam("date", date)
-                .when()
-                    .get("/books/find/date-after/{date}")
-                .then()
-                    .statusCode(200)
-                    .contentType(ContentType.JSON)
-                    .body(
-                        ".", hasSize(2),
-                        "title", hasItems("Book A", "Book B"),
-                        "price", hasItems(new BigDecimal("9.99"), new BigDecimal("19.99")),
-                        "publishDate", hasItems("2023-08-31", "2023-07-31")
-                    )
-                .extract().response();
-
-        // get the response and print it out
-        System.out.println(result.asString());
-
-    }
-
 
     @Test
     public void testDeleteById() {
@@ -139,7 +101,7 @@ public class BookControllerTest {
         given()
                 .pathParam("id", id)
                 .when()
-                    .delete("/books/{id}")
+                    .delete("/infra/{id}")
                 .then()
                     .statusCode(204); // expecting HTTP 204 No Content
     }
@@ -149,67 +111,59 @@ public class BookControllerTest {
 
         given()
                 .contentType(ContentType.JSON)
-                .body("{ \"title\": \"Book E\", \"price\": \"9.99\", \"publishDate\": \"2023-09-14\" }")
+                .body("{ \"type\": \"vm\", \"name\": \"paul3\" }")
                 .when()
-                    .post("/books")
+                    .post("/infra")
                 .then()
                     .statusCode(201) // expecting HTTP 201 Created
                     .contentType(ContentType.JSON); // expecting JSON response content
 
-        // find the new saved book
+        // find the new saved infra
         given()
                 //Returning floats and doubles as BigDecimal
                 .config(RestAssured.config().jsonConfig(jsonConfig().numberReturnType(BIG_DECIMAL)))
                 .contentType(ContentType.JSON)
-                .pathParam("title", "Book E")
+                .pathParam("type", "vm")
+                .pathParam("name", "paul3")
                 .when()
-                    .get("/books/find/title/{title}")
+                    .get("/infra/find/{type}/{name}")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON)
                     .body(
                         ".", hasSize(1),
-                        "[0].title", equalTo("Book E"),
-                        "[0].price", is(new BigDecimal("9.99")),
-                        "[0].publishDate", equalTo("2023-09-14")
+                        "[0].type", equalTo("vm"),
+                        "[0].name", equalTo("paul3")
                     );
     }
 
-    /**
-     * Book b4 = new Book("Book D",
-     * BigDecimal.valueOf(39.99),
-     * LocalDate.of(2023, 5, 5));
-     */
     @Test
     public void testUpdate() {
 
-        Book bookD = bookRepository.findByTitle("Book D").get(0);
-        System.out.println(bookD);
+        Infra infraVmPaul1 = infraRepository.findByTypeAndName("vm", "paul1").get(0);
+        System.out.println(infraVmPaul1);
 
-        Long id = bookD.getId();
+        Long id = infraVmPaul1.getId();
 
-        bookD.setTitle("Book E");
-        bookD.setPrice(new BigDecimal("199.99"));
-        bookD.setPublishDate(LocalDate.of(2024, 1, 31));
+        infraVmPaul1.setType("k8s");
+        infraVmPaul1.setName("paul4");
 
         given()
                 .contentType(ContentType.JSON)
-                .body(bookD)
+                .body(infraVmPaul1)
                 .when()
-                    .put("/books")
+                    .put("/infra")
                 .then()
                     .statusCode(200)
                     .contentType(ContentType.JSON);
 
-        // get the updated book
-        Book updatedBook = bookRepository.findById(id).orElseThrow();
-        System.out.println(updatedBook);
+        // get the updated infra
+        Infra updatedInfra = infraRepository.findById(id).orElseThrow();
+        System.out.println(updatedInfra);
 
-        assertEquals(id, updatedBook.getId());
-        assertEquals("Book E", updatedBook.getTitle());
-        assertEquals(new BigDecimal("199.99"), updatedBook.getPrice());
-        assertEquals(LocalDate.of(2024, 1, 31), updatedBook.getPublishDate());
-        
+        assertEquals(id, updatedInfra.getId());
+        assertEquals("k8s", updatedInfra.getType());
+        assertEquals("paul4", updatedInfra.getName());
     }
 
 

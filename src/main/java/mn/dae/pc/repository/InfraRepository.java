@@ -1,6 +1,6 @@
 package mn.dae.pc.repository;
 
-import mn.dae.pc.model.Book;
+import mn.dae.pc.model.Infra;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,12 +9,12 @@ import java.time.LocalDate;
 import java.util.List;
 
 // Spring Data JPA creates CRUD implementation at runtime automatically.
-public interface BookRepository extends JpaRepository<Book, Long> {
+public interface InfraRepository extends JpaRepository<Infra, Long> {
 
-    List<Book> findByTitle(String title);
+    List<Infra> findByTypeAndName(String type, String name);
 
     // Custom query
-    @Query("SELECT b FROM Book b WHERE b.publishDate > :date")
-    List<Book> findByPublishedDateAfter(@Param("date") LocalDate date);
+    @Query("SELECT name FROM Infra i WHERE i.name = :name AND i.type = :type")
+    List<Infra> findByTypeName(@Param("type") String type, @Param("name") String name);
 
 }

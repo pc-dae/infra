@@ -25,6 +25,6 @@ cd infra
 ## Deploy
 ```
 tag=0.0.1 # Increment this on each deployment
-docker tag infra-mgr:1.0 paulcarltondae/infra:$tag
-docker push  paulcarltondae/infra:$tag
+docker tag infra-mgr:1.0 paulcarltondae/infra-mgr:$tag
+docker push  paulcarltondae/infra-mgr:$tag
 ```
