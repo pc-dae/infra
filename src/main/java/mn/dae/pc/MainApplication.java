@@ -18,13 +18,11 @@ public class MainApplication {
     public static void main(String[] args) {
         SpringApplication.run(MainApplication.class, args);
     }
-    // Run this if app.db.init.enabled = true
     @Bean
-    @ConditionalOnProperty(prefix = "app", name = "db.init.enabled", havingValue = "true")
     public CommandLineRunner demoCommandLineRunner() {
         return args -> {
 
-            System.out.println("Running.....");
+            log.debug("Starting");
 
         };
     }

@@ -35,6 +35,15 @@ public class Infra {
                 '}';
     }
 
+    public void setFields(Infra updates) {
+        if (updates.getName() != null) {
+            setName(updates.getName());
+        }
+        if (updates.getType() != null) {
+            setType(updates.getType());
+        }
+    }
+
     public Long getId() {
         return id;
     }
